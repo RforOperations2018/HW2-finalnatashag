@@ -5,13 +5,14 @@ library(plotly)
 library(shinythemes)
 library(stringr)
 
-migrants<-read.csv("migrants2.csv")
+migrants <- read.csv("migrants2.csv")
 
 #Defining the UI for application 
 #I will use a FluidPage instead of navbar
 
 ui<-fluidPage(
-        titlePanel("Migrants Deaths acroos the World"),
+  # Typo
+        titlePanel("Migrants Deaths across the World"),
         sidebarLayout(
           sidebarPanel(
             #Month Selection
@@ -61,25 +62,30 @@ server <- function(input, output, session = session) {
   migrantsInput <- reactive({
     migrants <- migrants %>%
       # Slider Filter
-      filter(Reported.Year >= input$yearSelect[1] & Reported.Year <= input$yearSelect[2])
+      # Your select input for cause is single and so it can never be blank, it makes more sense to put up here
+      filter(Reported.Year >= input$yearSelect[1] & Reported.Year <= input$yearSelect[2] & Cause.of.Death == input$cause_Select)
     # Month and Cause of Dead Filter
-    if (length(input$month_Select) > 0 | length(input$cause_Select) > 0 ) {
+    if (length(input$month_Select) > 0) {
+      # This filter isn't really correct. For something like this you'll need to work with dates.
+      # dateRangeInput() instead of the year slider and month would work MUCH better
       migrants <- subset(migrants, Reported.Month %in% input$month_Select)
-      migrants<- subset(migrants, Cause.of.Death %in% input$cause_Select)
-      return(migrants)
     }
+    # This won't work under certain instances
+    return(migrants)
   })
   # Bar plot showing Number of Deads per Year
   output$plot1 <- renderPlotly({
     migrants <- migrantsInput()
     ggplotly(
       ggplot(data = migrants, aes(x = Reported.Year, y = Number.Dead)) + 
+        # Identity is breaking this
         geom_bar(stat="identity")+
         labs(x="Year", y= "Number of Deads", title="Number of Deads per Year"))
   })
   # Point plot showing Number of Deads per Region
   output$plot2 <- renderPlotly({
     migrants<- migrantsInput()
+    # You need to make a table to base this plot off of.
      ggplotly(
        ggplot(data = migrants, aes(x = Region, y = Number.Dead)) + 
         geom_point()+
@@ -89,7 +95,7 @@ server <- function(input, output, session = session) {
      migrants <- migrantsInput()
       ggplotly(
         ggplot(data = migrants, aes(x = Reported.Year, y = Number.Dead, fill=Region)) + 
-          geom_histogram(stat="identity")+
+          geom_histogram()+
            labs(x="Year", y="Number of Deads",title="Number of Dead per Year and Region"))
   })
   # Data Table
